@@ -4,7 +4,7 @@
 
 Name: setools
 Version: %{setools_maj_ver}.%{setools_min_ver}
-Release: 2%{?dist}
+Release: 4%{?dist}
 License: GPLv2
 URL: http://oss.tresys.com/projects/setools
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -28,6 +28,7 @@ Patch9: 0009-Fix-help-message-on-sesearch-D.patch
 Patch11: 0011-Fix-Wformat-security-issues.patch
 # Patch12: 0012-Fix-configure.ac-to-use-SWIG-3.0.0.patch
 Patch13: 0013-libqpol-Skip-types-when-building-type-attribute-map.patch
+Patch14: 0014-Add-support-for-DCCP-and-SCTP-protocols.patch
 
 Summary: Policy analysis tools for SELinux
 Group: System Environment/Base
@@ -37,8 +38,8 @@ Requires: setools-libs = %{version}-%{release} setools-libs-tcl = %{version}-%{r
 %define autoconf_ver 2.59
 %define bwidget_ver 1.8
 %define gtk_ver 2.8
-%define sepol_ver 2.5-8
-%define selinux_ver 2.5-12
+%define sepol_ver 2.5-10
+%define selinux_ver 2.5-14.1
 %define sqlite_ver 3.2.0
 %define swig_ver 2.0.7-3
 %define tcltk_ver 8.4.9
@@ -166,6 +167,7 @@ This package includes the following graphical tools:
 %patch11 -p 1 -b .Wformat-security
 # %patch12 -p 1 -b .version
 %patch13 -p 1 -b .libqpol
+%patch14 -p 1 -b .dccpsctp
 
 %ifarch sparc sparcv9 sparc64 s390 s390x
     for file in `find . -name Makefile.am`; do
@@ -291,6 +293,12 @@ rm -rf ${RPM_BUILD_ROOT}
 %postun libs-tcl -p /sbin/ldconfig
 
 %changelog
+* Wed Jul 25 2018 Vit Mojzis <vmojzis@redhat.com> - 3.3.8-4
+- Add support for DCCP and SCTP protocols (#1607273, #1601958)
+
+* Fri May 04 2018 Vit Mojzis <vmojzis@redhat.com> - 3.3.8-3
+- Rebuild to incorporate support for extended_socket_class from libsepol (#1573925)
+
 * Thu Oct 19 2017 Vit Mojzis <vmojzis@redhat.com> - 3.3.8-2
 - libqpol: Do not fail on neverallow rule query
 

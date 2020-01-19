@@ -1,0 +1,235 @@
+From 78260f2d8fdeb05a9d53727ea64bf5b2d08d3349 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Fri, 20 Jul 2018 17:33:22 +0200
+Subject: [PATCH] Add support for DCCP and SCTP protocols
+
+Resolves: rhbz#1607273
+---
+ libapol/include/apol/util.h          | 12 ++++++------
+ libapol/src/util.c                   | 17 +++++++++++++++++
+ libapol/swig/apol.i                  |  3 +++
+ libqpol/include/qpol/portcon_query.h | 13 +++++++++++--
+ libqpol/src/policy_define.c          | 10 ++++++++++
+ libqpol/src/policy_parse.y           |  7 +++++++
+ libqpol/swig/qpol.i                  |  3 +++
+ python/setools/seinfo.c              |  4 +++-
+ secmds/seinfo.c                      |  4 ++++
+ 9 files changed, 64 insertions(+), 9 deletions(-)
+
+diff --git a/libapol/include/apol/util.h b/libapol/include/apol/util.h
+index 99db1685..3e370332 100644
+--- a/libapol/include/apol/util.h
++++ b/libapol/include/apol/util.h
+@@ -48,8 +48,8 @@ extern "C"
+  * Given a portcon protocol, return a read-only string that describes
+  * that protocol.
+  *
+- * @param protocol Portcon protocol, one of IPPROTO_TCP or IPPROTO_UDP
+- * from netinet/in.h.
++ * @param protocol Portcon protocol, one of IPPROTO_TCP, IPPROTO_UDP,
++ * IPPROTO_DCCP or IPPROTO_SCTP from netinet/in.h.
+  *
+  * @return A string that describes the protocol, or NULL if the
+  * protocol is invalid.  <b>Do not free() this string.</b>
+@@ -59,10 +59,10 @@ extern "C"
+ /**
+  * Given the name of a portcon protocol, return its numeric value.
+  *
+- * @param protocol_str Portcon protocol, one of "tcp", "TCP", "udp", or "UDP".
+- *
+- * @return Numeric value for the protocol, one of IPPROTO_TCP or IPPROTO_UDP
+- * from netinet/in.h.  Upon error return 0.
++ * @param protocol_str Portcon protocol, one of "tcp", "TCP", "udp", "UDP",
++ * "dccp", "DCCP", "sctp" or "SCTP".
++ * @return Numeric value for the protocol, one of IPPROTO_TCP, IPPROTO_UDP,
++ * IPPROTO_DCCP or IPPROTO_SCTP from netinet/in.h.  Upon error return 0.
+  */
+ 	extern uint8_t apol_str_to_protocol(const char *protocol_str);
+ 
+diff --git a/libapol/src/util.c b/libapol/src/util.c
+index dd6d300d..fc38d9d5 100644
+--- a/libapol/src/util.c
++++ b/libapol/src/util.c
+@@ -42,6 +42,13 @@
+ #include <arpa/inet.h>
+ #include <netinet/in.h>		       /* needed for portcon's protocol */
+ 
++#ifndef IPPROTO_DCCP
++#define IPPROTO_DCCP 33
++#endif
++#ifndef IPPROTO_SCTP
++#define IPPROTO_SCTP 132
++#endif
++
+ /* use 8k line size */
+ #define APOL_LINE_SZ 8192
+ #define APOL_ENVIRON_VAR_NAME "APOL_INSTALL_DIR"
+@@ -173,6 +180,10 @@ const char *apol_protocol_to_str(uint8_t protocol)
+ 		return "tcp";
+ 	case IPPROTO_UDP:
+ 		return "udp";
++	case IPPROTO_DCCP:
++		return "dccp";
++	case IPPROTO_SCTP:
++		return "sctp";
+ 	default:
+ 		errno = EPROTONOSUPPORT;
+ 		return NULL;
+@@ -191,6 +202,12 @@ uint8_t apol_str_to_protocol(const char *protocol_str)
+ 	if (strcmp(protocol_str, "udp") == 0 || strcmp(protocol_str, "UDP") == 0) {
+ 		return IPPROTO_UDP;
+ 	}
++	if (strcmp(protocol_str, "dccp") == 0 || strcmp(protocol_str, "DCCP") == 0) {
++		return IPPROTO_DCCP;
++	}
++	if (strcmp(protocol_str, "sctp") == 0 || strcmp(protocol_str, "SCTP") == 0) {
++		return IPPROTO_SCTP;
++	}
+ 	errno = EPROTONOSUPPORT;
+ 	return 0;
+ }
+diff --git a/libapol/swig/apol.i b/libapol/swig/apol.i
+index 8a4a195f..6a650315 100644
+--- a/libapol/swig/apol.i
++++ b/libapol/swig/apol.i
+@@ -227,6 +227,9 @@ const char *libapol_get_version(void);
+ /* defines from netinet/in.h for ip protocols */
+ #define IPPROTO_TCP  6
+ #define IPPROTO_UDP 17
++#define IPPROTO_DCCP 33
++#define IPPROTO_SCTP 132
++
+ const char *apol_protocol_to_str(uint8_t protocol);
+ uint8_t apol_str_to_protocol(const char *protocol_str);
+ %newobject wrap_apol_str_to_internal_ip(char*);
+diff --git a/libqpol/include/qpol/portcon_query.h b/libqpol/include/qpol/portcon_query.h
+index 63210feb..72e8ce9e 100644
+--- a/libqpol/include/qpol/portcon_query.h
++++ b/libqpol/include/qpol/portcon_query.h
+@@ -37,6 +37,13 @@ extern "C"
+ #include <qpol/iterator.h>
+ #include <qpol/policy.h>
+ 
++#ifndef IPPROTO_DCCP
++#define IPPROTO_DCCP 33
++#endif
++#ifndef IPPROTO_SCTP
++#define IPPROTO_SCTP 132
++#endif
++
+ 	typedef struct qpol_portcon qpol_portcon_t;
+ 
+ /**
+@@ -46,7 +53,8 @@ extern "C"
+  *  @param high The high port of the range of ports; if searching for a
+  *  single port, set high equal to low.
+  *  @param protocol The protocol used in the portcon statement.
+- *  Value should be one of IPPROTO_TCP or IPPROTO_UDP from netinet/in.h
++ *  Value should be one of IPPROTO_TCP, IPPROTO_UDP, IPPROTO_DCCP or 
++ *  IPPROTO_SCTP from netinet/in.h
+  *  @param ocon Pointer in which to store the statement returned.
+  *  The caller should not free this pointer.
+  *  @return 0 on success and < 0 on failure; if the call fails,
+@@ -73,7 +81,8 @@ extern "C"
+  *  @param policy The policy associated with the portcon statement.
+  *  @param ocon The portcon statement from which to get the protocol.
+  *  @param protocol Pointer to set to the value of protocol.
+- *  Value will be one of IPPROTO_TCP or IPPROTO_UDP from netinet/in.h
++ *  Value will be one of IPPROTO_TCP, IPPROTO_UDP, IPPROTO_DCCP or 
++ *  IPPROTO_SCTP from netinet/in.h
+  *  @return 0 on success and < 0 on failure; if the call fails,
+  *  errno will be set and *protocol will be 0;
+  */
+diff --git a/libqpol/src/policy_define.c b/libqpol/src/policy_define.c
+index 15f70ba3..2c5d488b 100644
+--- a/libqpol/src/policy_define.c
++++ b/libqpol/src/policy_define.c
+@@ -63,6 +63,12 @@
+ #ifdef HAVE_SEPOL_ERRCODES
+ #include <sepol/errcodes.h>
+ #endif
++#ifndef IPPROTO_DCCP
++#define IPPROTO_DCCP 33
++#endif
++#ifndef IPPROTO_SCTP
++#define IPPROTO_SCTP 132
++#endif
+ 
+ #include "queue.h"
+ /* Required for SETools libqpol - Removed #include "checkpolicy.h"*/
+@@ -4350,6 +4356,10 @@ int define_port_context(unsigned int low, unsigned int high)
+ 		protocol = IPPROTO_TCP;
+ 	} else if ((strcmp(id, "udp") == 0) || (strcmp(id, "UDP") == 0)) {
+ 		protocol = IPPROTO_UDP;
++	} else if ((strcmp(id, "dccp") == 0) || (strcmp(id, "DCCP") == 0)) {
++		protocol = IPPROTO_DCCP;
++	} else if ((strcmp(id, "sctp") == 0) || (strcmp(id, "SCTP") == 0)) {
++		protocol = IPPROTO_SCTP;
+ 	} else {
+ 		yyerror2("unrecognized protocol %s", id);
+ 		free(newc);
+diff --git a/libqpol/src/policy_parse.y b/libqpol/src/policy_parse.y
+index 357f3d8f..e07ff52c 100644
+--- a/libqpol/src/policy_parse.y
++++ b/libqpol/src/policy_parse.y
+@@ -52,6 +52,13 @@
+ #include <arpa/inet.h>
+ #include <stdlib.h>
+ 
++#ifndef IPPROTO_DCCP
++#define IPPROTO_DCCP 33
++#endif
++#ifndef IPPROTO_SCTP
++#define IPPROTO_SCTP 132
++#endif
++
+ #include <sepol/policydb/expand.h>
+ #include <sepol/policydb/policydb.h>
+ #include <sepol/policydb/services.h>
+diff --git a/libqpol/swig/qpol.i b/libqpol/swig/qpol.i
+index b604488a..9fbb8286 100644
+--- a/libqpol/swig/qpol.i
++++ b/libqpol/swig/qpol.i
+@@ -2005,6 +2005,9 @@ typedef struct qpol_nodecon {} qpol_nodecon_t;
+ /* from netinet/in.h */
+ #define IPPROTO_TCP 6
+ #define IPPROTO_UDP 17
++#define IPPROTO_DCCP 33
++#define IPPROTO_SCTP 132
++
+ typedef struct qpol_portcon {} qpol_portcon_t;
+ %extend qpol_portcon_t {
+ 	qpol_portcon(qpol_policy_t *p, uint16_t low, uint16_t high, uint8_t protocol) {
+diff --git a/python/setools/seinfo.c b/python/setools/seinfo.c
+index 211930a3..7c22f9e7 100644
+--- a/python/setools/seinfo.c
++++ b/python/setools/seinfo.c
+@@ -512,7 +512,9 @@ static PyObject*  get_ports(const char *num, const apol_policy_t * policydb)
+ 		}
+ 
+ 		if ((ocon_proto != IPPROTO_TCP) &&
+-		    (ocon_proto != IPPROTO_UDP)) 
++		    (ocon_proto != IPPROTO_UDP) &&
++		    (ocon_proto != IPPROTO_DCCP) &&
++		    (ocon_proto != IPPROTO_SCTP)) 
+ 			goto cleanup;
+ 
+ 		if (qpol_portcon_get_context(q, portcon, &ctxt)) {
+diff --git a/secmds/seinfo.c b/secmds/seinfo.c
+index a9708907..3c71af57 100644
+--- a/secmds/seinfo.c
++++ b/secmds/seinfo.c
+@@ -1155,6 +1155,10 @@ static int print_portcon(FILE * fp, const char *num, const char *protocol, const
+ 			proto = IPPROTO_TCP;
+ 		else if (!strcmp(protocol, "udp"))
+ 			proto = IPPROTO_UDP;
++		else if (!strcmp(protocol, "dccp"))
++			proto = IPPROTO_DCCP;
++		else if (!strcmp(protocol, "sctp"))
++			proto = IPPROTO_SCTP;
+ 		else {
+ 			ERR(policydb, "Unable to get portcon by protocol: bad protocol %s.", protocol);
+ 			goto cleanup;
+-- 
+2.14.3
+
