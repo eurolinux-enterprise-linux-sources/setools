@@ -3,7 +3,7 @@
 
 Name: setools
 Version: %{setools_maj_ver}.%{setools_min_ver}
-Release: 40%{?dist}
+Release: 46%{?dist}
 License: GPLv2
 URL: http://oss.tresys.com/projects/setools
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -162,12 +162,12 @@ This package includes the following graphical tools:
 %patch8 -p 1 -b .fixoutput
 %patch9 -p 1 -b .fixswig
 %patch10 -p 1 -b .current
-%patch11 -p 1 -b .noship
 %patch12 -p 1 -b .seaudit
 %patch13 -p 1 -b .swig
 %patch14 -p 2 -b .boolsub
 %patch15 -p 1 -b .aliases
 %patch16 -p 1 -b .cmdline
+%patch11 -p 1 -b .noship
 %ifarch sparc sparcv9 sparc64 s390 s390x
     for file in `find . -name Makefile.am`; do
         sed -i -e 's:-fpic:-fPIC:' $file;
@@ -221,6 +221,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_libdir}/libpoldiff.so.*
 %{_libdir}/libsefs.so.*
 %{_libdir}/libseaudit.so.*
+%{tcllibdir}/apol_tcl/
 %dir %{setoolsdir}
 
 %files libs-tcl
@@ -247,6 +248,12 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/seinfo
 %{_bindir}/sesearch
 %{_bindir}/sediff
+%{_bindir}/findcon
+%{_bindir}/sechecker
+%{setoolsdir}/sechecker-profiles/
+%{setoolsdir}/sechecker_help.txt
+%{_mandir}/man1/findcon.1.gz
+%{_mandir}/man1/sechecker.1.gz
 %{_mandir}/man1/sediff.1.gz
 %{_mandir}/man1/seinfo.1.gz
 %{_mandir}/man1/sesearch.1.gz
@@ -255,7 +262,6 @@ rm -rf ${RPM_BUILD_ROOT}
 %defattr(-,root,root,-)
 %{_bindir}/seaudit
 %{_bindir}/apol
-%{tcllibdir}/apol_tcl/
 %{setoolsdir}/apol_help.txt
 %{setoolsdir}/domaintrans_help.txt
 %{setoolsdir}/file_relabel_help.txt
@@ -284,6 +290,27 @@ rm -rf ${RPM_BUILD_ROOT}
 %postun libs-tcl -p /sbin/ldconfig
 
 %changelog
+* Tue Mar 18 2014 Dan Walsh <dwalsh@redhat.com> - 3.3.7-46
+- Move apol_tcl to setools-lib package
+Resolves: #1076429
+
+* Thu Feb 13 2014 Dan Walsh <dwalsh@redhat.com> - 3.3.7-45
+- Fix sesearch --all
+
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 3.3.7-44
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.3.7-43
+- Mass rebuild 2013-12-27
+
+* Wed Nov 27 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-42
+- Add back in findcon and sechecker for RHEL customer request
+Resolves: 927522
+
+* Mon Sep 16 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-41
+- Cleanup Destop files.
+Resolves: 884174
+
 * Fri Jul 19 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-40
 - Fix help message on sesearch -D
 

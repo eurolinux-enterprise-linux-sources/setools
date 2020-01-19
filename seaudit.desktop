@@ -6,7 +6,6 @@ Icon=seaudit.png
 Exec=/usr/bin/seaudit
 Type=Application
 Terminal=false
-Encoding=UTF-8
 Categories=System;
 X-Desktop-File-Install-Version=0.2
 StartupNotify=true
