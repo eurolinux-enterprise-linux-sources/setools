@@ -1,11 +1,11 @@
-From 252b7c8bf311d615164a20f4f402767e5859d972 Mon Sep 17 00:00:00 2001
+From 852dfaa124379e84f6363c30c0ef56f00fa4b235 Mon Sep 17 00:00:00 2001
 From: Dan Walsh <dwalsh@redhat.com>
 Date: Tue, 20 Sep 2011 15:40:28 -0400
-Subject: [PATCH 3/6] Since-we-do-not-ship-neverallow-rules-all-always-fail
+Subject: [PATCH 01/11] Since-we-do-not-ship-neverallow-rules-all-always-fail
 
 ---
- libqpol/src/avrule_query.c |    5 +++--
- 1 files changed, 3 insertions(+), 2 deletions(-)
+ libqpol/src/avrule_query.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/libqpol/src/avrule_query.c b/libqpol/src/avrule_query.c
 index 749565b..76dcaa3 100644
@@ -24,5 +24,5 @@ index 749565b..76dcaa3 100644
  
  	db = &policy->p->p;
 -- 
-1.7.6.2
+1.8.5.3
 

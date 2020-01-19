@@ -412,6 +412,45 @@ static int infer_policy_version(qpol_policy_t * policy)
 	}
 	qpol_iterator_destroy(&iter);
 
+/* Check each version change from 29 to 24 */
+/* If this is available then just set version 29 */
+#ifdef HAVE_SEPOL_CONSTRAINT_NAMES
+	db->policyvers = 29;
+	return STATUS_SUCCESS;
+#endif
+
+/*
+ * These will remove the rules from policy_define.c if libsepol
+ * does not have the support listed in policydb.h. The earlier code
+ * checked for at least one rule before enabling - this patch does not
+ * as if in policydb.h then must be capable of being built.
+ */
+#ifdef HAVE_SEPOL_DEFAULT_TYPE
+	db->policyvers = 28;
+	return STATUS_SUCCESS;
+#endif
+
+#ifdef HAVE_SEPOL_NEW_OBJECT_DEFAULTS
+	db->policyvers = 27;
+	return STATUS_SUCCESS;
+#endif
+
+/* This seems to be in place already ??
+#ifdef HAVE_SEPOL_ROLETRANS
+	db->policyvers = 26;
+	return STATUS_SUCCESS;
+#endif */
+
+#ifdef HAVE_SEPOL_FILENAME_TRANS
+	db->policyvers = 25;
+	return STATUS_SUCCESS;
+#endif
+
+#ifdef HAVE_SEPOL_BOUNDARY
+	db->policyvers = 24;
+	return STATUS_SUCCESS;
+#endif
+
 #if defined(HAVE_SEPOL_PERMISSIVE_TYPES) || defined(HAVE_SEPOL_POLICYCAPS)
 	ebitmap_node_t *node = NULL;
 	unsigned int i = 0;
@@ -1466,6 +1505,25 @@ int qpol_policy_get_policy_version(const qpol_policy_t * policy, unsigned int *v
 	return STATUS_SUCCESS;
 }
 
+int qpol_policy_get_policy_handle_unknown(const qpol_policy_t * policy, unsigned int *handle_unknown)
+{
+	policydb_t *db;
+
+	if (handle_unknown != NULL)
+		*handle_unknown = 0;
+
+	if (policy == NULL || handle_unknown == NULL) {
+		ERR(policy, "%s", strerror(EINVAL));
+		errno = EINVAL;
+		return STATUS_ERR;
+	}
+
+	db = &policy->p->p;
+	*handle_unknown = db->handle_unknown;
+
+	return STATUS_SUCCESS;
+}
+
 int qpol_policy_get_type(const qpol_policy_t * policy, int *type)
 {
 	if (!policy || !type) {
@@ -1531,6 +1589,55 @@ int qpol_policy_has_capability(const qpol_policy_t * policy, qpol_capability_e c
 		if (version >= 22 && policy->type != QPOL_POLICY_MODULE_BINARY)
 			return 1;
 		if (version >= 7 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	case QPOL_CAP_BOUNDS:
+	{
+		if (version >= 24 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 9 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	case QPOL_CAP_PERMISSIVE:
+	{
+		if (version >= 23 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 8 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	case QPOL_CAP_FILENAME_TRANS:
+	{
+		if (version >= 25 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 11 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	case QPOL_CAP_ROLETRANS:
+	{
+		if (version >= 26 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 12 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	/* This indicates the user, role and range - types were ate 28/16 */
+	case QPOL_CAP_DEFAULT_OBJECTS:
+	{
+		if (version >= 27 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 15 && policy->type == QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		break;
+	}
+	case QPOL_CAP_DEFAULT_TYPE:
+	{
+		if (version >= 28 && policy->type != QPOL_POLICY_MODULE_BINARY)
+			return 1;
+		if (version >= 16 && policy->type == QPOL_POLICY_MODULE_BINARY)
 			return 1;
 		break;
 	}

@@ -14,11 +14,13 @@ AM_LDFLAGS = @DEBUGLDFLAGS@ @WARNLDFLAGS@ @PROFILELDFLAGS@
 libapol_a_SOURCES = \
 	avrule-query.c \
 	bool-query.c \
+	bounds-query.c \
 	bst.c \
 	class-perm-query.c \
 	condrule-query.c \
 	constraint-query.c \
 	context-query.c \
+	default-object-query.c \
 	domain-trans-analysis.c domain-trans-analysis-internal.h \
 	fscon-query.c \
 	infoflow-analysis.c infoflow-analysis-internal.h \
@@ -40,6 +42,7 @@ libapol_a_SOURCES = \
 	render.c \
 	role-query.c \
 	terule-query.c \
+	ftrule-query.c \
 	type-query.c \
 	types-relation-analysis.c \
 	user-query.c \

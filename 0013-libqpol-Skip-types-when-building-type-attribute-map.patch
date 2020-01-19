@@ -1,0 +1,29 @@
+From f7b31b7e28a4f89bcfcd0d139cfca78777a4333e Mon Sep 17 00:00:00 2001
+From: Chris PeBenito <cpebenito@tresys.com>
+Date: Thu, 4 Feb 2016 14:06:49 -0500
+Subject: [PATCH] libqpol: Skip types when building type attribute map.
+
+Fix originally from Richard Haines.
+
+Closes #94.
+---
+ libqpol/src/policy_extend.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/libqpol/src/policy_extend.c b/libqpol/src/policy_extend.c
+index 1417271..416bddb 100644
+--- a/libqpol/src/policy_extend.c
++++ b/libqpol/src/policy_extend.c
+@@ -201,6 +201,9 @@ static int qpol_policy_build_attrs_from_map(qpol_policy_t * policy)
+ 	memset(&buff, 0, 10 * sizeof(char));
+ 
+ 	for (i = 0; i < db->p_types.nprim; i++) {
++		/* skip types */
++		if (db->type_val_to_struct[i]->flavor == TYPE_TYPE)
++			continue;
+ 		count = 0;
+ 		ebitmap_for_each_bit(&db->attr_type_map[i], node, bit) {
+ 			if (ebitmap_node_get_bit(node, bit))
+-- 
+2.5.0
+

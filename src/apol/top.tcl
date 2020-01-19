@@ -18,8 +18,9 @@ set COPYRIGHT_INFO "Copyright (C) 2001-2008 Tresys Technology, LLC"
 namespace eval ApolTop {
     variable policy {} ;# handle to an apol_policy, or {} if none opened
     variable qpolicy {} ;# handle to policy's qpol_policy_t, or {} if none opened
-    # these three are shown on the status line of the toplevel window
+    # these four are shown on the status line of the toplevel window
     variable policy_version_string {}
+    variable policy_handle_unknown_string {}
     variable policy_source_linenum {}
     variable policy_stats_summary {}
     variable policy_stats  ;# array of statistics for the current policy
@@ -68,10 +69,15 @@ namespace eval ApolTop {
         {Apol_Initial_SIDS components {}}
         {Apol_NetContexts components {}}
         {Apol_FSContexts components {}}
+        {Apol_Polcaps components {tag_polcap}}
+        {Apol_Namespaces components {}}
         {Apol_TE rules {tag_query_saveable}}
         {Apol_Cond_Rules rules {tag_conditionals}}
+        {Apol_Constraint rules {tag_query_saveable}}
         {Apol_RBAC rules {}}
         {Apol_Range rules {tag_mls}}
+        {Apol_Bounds rules {tag_bounds}}
+        {Apol_DefaultObjects rules {tag_default_objects}}
         {Apol_File_Contexts {} {}}
         {Apol_Analysis {} {tag_query_saveable}}
         {Apol_PolicyConf {} {tag_source}}
@@ -108,6 +114,12 @@ proc ApolTop::is_capable {capability} {
         "neverallow" { set cap $::QPOL_CAP_NEVERALLOW }
         "source" { set cap $::QPOL_CAP_SOURCE }
         "syntactic rules" { set cap $::QPOL_CAP_SYN_RULES }
+        "polcap" { set cap $::QPOL_CAP_POLCAPS }
+        "bounds" { set cap $::QPOL_CAP_BOUNDS }
+        "default_objects" { set cap $::QPOL_CAP_DEFAULT_OBJECTS }
+        "default_type" { set cap $::QPOL_CAP_DEFAULT_TYPE }
+        "permissive" { set cap $::QPOL_CAP_PERMISSIVE }
+        "filename_trans" { set cap $::QPOL_CAP_FILENAME_TRANS }
         default { return 0 }
     }
     variable qpolicy
@@ -368,6 +380,15 @@ proc ApolTop::_toplevel_policy_open {ppath} {
     if {![is_capable "source"]} {
         _toplevel_enable_tabs tag_source disabled
     }
+    if {![is_capable "polcap"]} {
+        _toplevel_enable_tabs tag_polcap disabled
+    }
+    if {![is_capable "bounds"]} {
+        _toplevel_enable_tabs tag_bounds disabled
+    }
+    if {![is_capable "default_objects"]} {
+        _toplevel_enable_tabs tag_default_objects disabled
+    }
     _toplevel_tab_switched
 
     variable mainframe
@@ -376,6 +397,23 @@ proc ApolTop::_toplevel_policy_open {ppath} {
 
     _toplevel_update_stats
     variable policy_version_string [$::ApolTop::policy get_version_type_mls_str]
+# Set how to handle unknown class/perms.
+#define SEPOL_DENY_UNKNOWN	    0
+#define SEPOL_REJECT_UNKNOWN	    2
+#define SEPOL_ALLOW_UNKNOWN	    4
+    variable policy_handle_unknown_string
+    set policy_handle_unknown -1
+    set policy_handle_unknown [$::ApolTop::policy get_policy_handle_unknown]
+
+    if {$policy_handle_unknown == 0} {
+        set policy_handle_unknown_string "deny"
+    } elseif {$policy_handle_unknown == 2} {
+        set policy_handle_unknown_string "reject"
+    } elseif {$policy_handle_unknown == 4} {
+        set policy_handle_unknown_string "allow"
+    } else {
+        set policy_handle_unknown_string "unknown"
+    }
 
     set primary_file [$ppath get_primary]
     wm title . "SELinux Policy Analysis - $primary_file"
@@ -457,6 +495,9 @@ proc ApolTop::_toplevel_update_stats {} {
         "sens" get_level_iter
         "cats" get_cat_iter
         "range_trans" get_range_trans_iter
+        "constraints" get_constraint_iter
+        "validatetrans" get_validatetrans_iter
+        "filename_trans" get_filename_trans_iter
 
         "sids" get_isid_iter
         "portcons" get_portcon_iter
@@ -464,6 +505,8 @@ proc ApolTop::_toplevel_update_stats {} {
         "nodecons" get_nodecon_iter
         "genfscons" get_genfscon_iter
         "fs_uses" get_fs_use_iter
+        "permissive" get_permissive_iter
+        "polcap" get_polcap_iter
     }
     foreach {key func} $iter_funcs {
         set i [$::ApolTop::qpolicy $func]
@@ -518,6 +561,109 @@ proc ApolTop::_toplevel_update_stats {} {
         $i -delete
     }
 
+    # Determine number of mlsconstrain and mlsvalidatetrans rules and
+    # recalculate the numbers accordingly.
+    if {[ApolTop::is_capable "mls"]} {
+        set mlsconstrain_count [ApolTop::_get_mls_count new_apol_constraint_query_t]
+        set policy_stats(constraints) [expr $policy_stats(constraints) - $mlsconstrain_count]
+        set policy_stats(mlsconstraints) $mlsconstrain_count
+
+        set mlsvalidatetrans_count [ApolTop::_get_mls_count new_apol_validatetrans_query_t]
+        set policy_stats(validatetrans) [expr $policy_stats(validatetrans) - $mlsvalidatetrans_count]
+        set policy_stats(mlsvalidatetrans) $mlsvalidatetrans_count
+    } else {
+        set policy_stats(mlsconstraints) 0
+        set policy_stats(mlsvalidatetrans) 0
+    }
+
+    # Determine number of bounds statements
+    set policy_stats(userbounds) 0
+    set policy_stats(rolebounds) 0
+    set policy_stats(typebounds) 0
+
+    if {[is_capable "bounds"]} {
+        # Determine number of userbounds statements
+        set q [new_apol_userbounds_query_t]
+        set v [$q run $::ApolTop::policy]
+        $q -acquire
+        $q -delete
+        for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+            for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+                set q [qpol_userbounds_from_void [$v get_element $i]]
+                set parent [$q get_parent_name $::ApolTop::qpolicy]
+                if {$parent != ""} {
+                    set policy_stats(userbounds) [expr $policy_stats(userbounds) + 1]
+                }
+            }
+        }
+
+        # Determine number of rolebounds statements
+        set q [new_apol_rolebounds_query_t]
+        set v [$q run $::ApolTop::policy]
+        $q -acquire
+        $q -delete
+        for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+            for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+                set q [qpol_rolebounds_from_void [$v get_element $i]]
+                set parent [$q get_parent_name $::ApolTop::qpolicy]
+                if {$parent != ""} {
+                    set policy_stats(rolebounds) [expr $policy_stats(rolebounds) + 1]
+                }
+            }
+        }
+
+        # Determine number of typebounds statements
+        set q [new_apol_typebounds_query_t]
+        set v [$q run $::ApolTop::policy]
+        $q -acquire
+        $q -delete
+        for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+            for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+                set q [qpol_typebounds_from_void [$v get_element $i]]
+                set parent [$q get_parent_name $::ApolTop::qpolicy]
+                if {$parent != ""} {
+                    set policy_stats(typebounds) [expr $policy_stats(typebounds) + 1]
+                }
+            }
+        }
+    }
+
+    # Determine number of default_object statements
+    set policy_stats(default_user) 0
+    set policy_stats(default_role) 0
+    set policy_stats(default_type) 0
+    set policy_stats(default_range) 0
+
+    if {[is_capable "default_objects"]} {
+        set q [new_apol_default_object_query_t]
+        set v [$q run $::ApolTop::policy]
+        $q -acquire
+        $q -delete
+        for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+            for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+                set q [qpol_default_object_from_void [$v get_element $i]]
+                set default [$q get_user_default $::ApolTop::qpolicy]
+                if {$default != ""} {
+                    set policy_stats(default_user) [expr $policy_stats(default_user) + 1]
+                }
+                set default [$q get_role_default $::ApolTop::qpolicy]
+                if {$default != ""} {
+                    set policy_stats(default_role) [expr $policy_stats(default_role) + 1]
+                }
+                if {[is_capable "default_type"]} {
+                    set default [$q get_type_default $::ApolTop::qpolicy]
+                    if {$default != ""} {
+                        set policy_stats(default_type) [expr $policy_stats(default_type) + 1]
+                    }
+                }
+                set default [$q get_range_default $::ApolTop::qpolicy]
+                if {$default != ""} {
+                    set policy_stats(default_range) [expr $policy_stats(default_range) + 1]
+                }
+            }
+        }
+    }
+
     set policy_stats_summary ""
     append policy_stats_summary "Classes: $policy_stats(classes)   "
     append policy_stats_summary "Perms: $policy_stats(perms)   "
@@ -551,6 +697,7 @@ proc ApolTop::_user_close_policy {} {
 
 proc ApolTop::_close_policy {} {
     variable policy_version_string {}
+    variable policy_handle_unknown {}
     variable policy_stats_summary {}
 
     wm title . "SELinux Policy Analysis"
@@ -579,7 +726,9 @@ proc ApolTop::_close_policy {} {
 
     _toplevel_enable_tabs tag_conditionals normal
     _toplevel_enable_tabs tag_mls normal
-    _toplevel_enable_tabs tag_source normal
+    _toplevel_enable_tabs tag_polcap normal
+    _toplevel_enable_tabs tag_bounds normal
+    _toplevel_enable_tabs tag_default_objects normal
 }
 
 proc ApolTop::_exit {} {
@@ -618,9 +767,7 @@ proc ApolTop::_goto {} {
 }
 
 proc ApolTop::_open_query_file {} {
-    set types {
-        {"Query files" {$ApolTop::query_file_ext}}
-    }
+    set types " {\"Query files\" { $ApolTop::query_file_ext }} "
     set query_file [tk_getOpenFile -filetypes $types -title "Open Apol Query" \
                         -defaultextension $ApolTop::query_file_ext -parent .]
     if {$query_file != {}} {
@@ -657,9 +804,7 @@ proc ApolTop::_open_query_file {} {
 }
 
 proc ApolTop::_save_query_file {} {
-    set types {
-        {"Query files" {$ApolTop::query_file_ext}}
-    }
+    set types " {\"Query files\" {$ApolTop::query_file_ext}} "
     set query_file [tk_getSaveFile -title "Save Apol Query" \
                         -defaultextension $ApolTop::query_file_ext \
                         -filetypes $types -parent .]
@@ -682,6 +827,7 @@ proc ApolTop::_save_query_file {} {
 
 proc ApolTop::_show_policy_summary {} {
     variable policy_version_string
+    variable policy_handle_unknown_string
     variable policy_stats
 
     if {![regexp -- {^([^\(]+) \(([^,]+), ([^\)]+)} $ApolTop::policy_version_string -> policy_version policy_type policy_mls_type]} {
@@ -700,8 +846,8 @@ proc ApolTop::_show_policy_summary {} {
 
     label $w.title -text "Policy Summary Statistics"
     set f [frame $w.summary]
-    label $f.l -justify left -text "    Policy Version:\n    Policy Type:\n    MLS Status:"
-    label $f.r -justify left -text "$policy_version\n$policy_type\n$policy_mls_type"
+    label $f.l -justify left -text "    Policy Version:\n    Policy Type:\n    MLS Status:\n    Handle unknown Class/Perms:"
+    label $f.r -justify left -text "$policy_version\n$policy_type\n$policy_mls_type\n$policy_handle_unknown_string"
     grid $f.l $f.r -sticky w
     grid configure $f.r -padx 30
     grid $w.title - -sticky w -padx 8
@@ -718,6 +864,8 @@ proc ApolTop::_show_policy_summary {} {
         }
         "Number of Types and Attributes" {
             "Types" types
+            "   that includes permissive types" permissive
+            "   that includes bounded types" typebounds
             "Attributes" attribs
         }
         "Number of Type Enforcement Rules" {
@@ -726,15 +874,23 @@ proc ApolTop::_show_policy_summary {} {
             "dontaudits" avrule_dontaudit
             "neverallows" avrule_neverallow
             "type_transitions" type_trans
+            "type_transitions - filename" filename_trans
             "type_members" type_member
             "type_changes" type_change
         }
         "Number of Roles" {
             "Roles" roles
+            "   that includes bounded roles" rolebounds
         }
         "Number of RBAC Rules" {
             "allows" role_allow
             "role_transitions" role_trans
+        }
+        "Number of Default Object Rules" {
+            "default_user" default_user
+            "default_role" default_role
+            "default_type" default_type
+            "default_range" default_range
         }
     } {
         set ltext "$title:"
@@ -758,9 +914,14 @@ proc ApolTop::_show_policy_summary {} {
     foreach {title block} {
         "Number of Users" {
             "Users" users
+            "   that includes bounded users" userbounds
         }
         "Number of Booleans" {
             "Booleans" bools
+        }
+        "Number of Constraints" {
+            "constrain" constraints
+            "validatetrans" validatetrans
         }
         "Number of MLS Components" {
             "Sensitivities" sens
@@ -768,6 +929,8 @@ proc ApolTop::_show_policy_summary {} {
         }
         "Number of MLS Rules" {
             "range_transitions" range_trans
+            "mlsconstrain" mlsconstraints
+            "mlsvalidatetrans" mlsvalidatetrans
         }
         "Number of Initial SIDs" {
             "SIDs" sids
@@ -778,6 +941,9 @@ proc ApolTop::_show_policy_summary {} {
             "NodeCons" nodecons
             "GenFSCons" genfscons
             "fs_use statements" fs_uses
+        }
+        "Number of Policy Capabilities" {
+            "polcap" polcap
         }
     } {
         set ltext "$title:"
@@ -1069,6 +1235,41 @@ proc ApolTop::_write_configuration_file {} {
     variable max_recent_files
     puts $f $max_recent_files
     close $f
+}
+
+# This will work out how many mlsconstrain and mlsvalidatetrans rules
+# there are as the get_iter numbers are overall count.
+proc ApolTop::_get_mls_count {command} {
+
+    set q [$command]
+    # This reads in the constraint info
+    set v [$q run $::ApolTop::policy]
+    $q -acquire
+    $q -delete
+
+    set mls_count 0
+
+    # This loop will process each constraint in the policy
+    for {set i 0} {$v != "NULL" && $i < [$v get_size]} {incr i} {
+        set q [qpol_constraint_from_void [$v get_element $i]]
+
+        # Find if this is an mls rule or not
+        set x [$q get_expr_iter $::ApolTop::qpolicy]
+        while {![$x end]} {
+            foreach t [iter_to_list $x] {
+                set t [qpol_constraint_expr_node_from_void $t]
+                # Get Symbol type
+                set sym_type [$t get_sym_type $::ApolTop::qpolicy]
+                if { $sym_type >= $::QPOL_CEXPR_SYM_L1L2 } {
+                    set mls_count [expr $mls_count + 1]
+                    break
+                }
+            }
+        }
+        $x -acquire
+        $x -delete
+    }
+    return $mls_count
 }
 
 #######################################################

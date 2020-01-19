@@ -1,17 +1,17 @@
-From 2b58d92add64b53b16cbb438e7b69e85d046afd1 Mon Sep 17 00:00:00 2001
+From 0332c009bd0581ab9a75a4ea80af92bb2d6b8b1f Mon Sep 17 00:00:00 2001
 From: Dan Walsh <dwalsh@redhat.com>
 Date: Tue, 20 Sep 2011 15:46:38 -0400
-Subject: [PATCH 5/6] Fix sepol calls to work with latest libsepol
+Subject: [PATCH 02/11] Fix sepol calls to work with latest libsepol
 
 ---
- configure.ac |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ configure.ac | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/configure.ac b/configure.ac
-index e837e03..3c11e23 100644
+index 577ce48..2a5b55b 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -505,7 +505,7 @@ AC_COMPILE_IFELSE(
+@@ -521,7 +521,7 @@ else
                    [AC_LANG_SOURCE([
  #include <sepol/policydb/expand.h>
  int main () {
@@ -20,7 +20,7 @@ index e837e03..3c11e23 100644
  }])],
                    sepol_new_user_role_mapping="yes",
                    sepol_new_user_role_mapping="no")
-@@ -541,7 +541,7 @@ if test ${sepol_check_boolmap} = "yes"; then
+@@ -578,7 +578,7 @@ if test ${sepol_check_boolmap} = "yes"; then
                           [AC_LANG_SOURCE([
  #include <sepol/policydb/expand.h>
  int main () {
@@ -30,5 +30,5 @@ index e837e03..3c11e23 100644
                           AC_MSG_RESULT([yes]),
                           AC_MSG_ERROR([this version of libsepol is incompatible with SETools]))
 -- 
-1.7.6.2
+1.8.5.3
 

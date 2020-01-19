@@ -3,11 +3,13 @@ apoldir = $(includedir)/apol
 apol_HEADERS = \
 	avrule-query.h \
 	bool-query.h \
+	bounds-query.h \
 	bst.h \
 	class-perm-query.h \
 	condrule-query.h \
 	constraint-query.h \
 	context-query.h \
+	default-object-query.h \
 	domain-trans-analysis.h \
 	fscon-query.h \
 	infoflow-analysis.h \
@@ -27,6 +29,7 @@ apol_HEADERS = \
 	relabel-analysis.h \
 	render.h \
 	role-query.h \
+	ftrule-query.h \
 	terule-query.h \
 	type-query.h \
 	types-relation-analysis.h \

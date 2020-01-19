@@ -1,0 +1,39 @@
+From 61d3d40e791a4ac392930f11785e4057f67a5b09 Mon Sep 17 00:00:00 2001
+From: Miroslav Grepl <mgrepl@redhat.com>
+Date: Fri, 11 Apr 2014 11:14:50 +0200
+Subject: [PATCH 06/11] Add support for boolean subs
+
+---
+ secmds/seinfo.c   | 2 +-
+ secmds/sesearch.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/secmds/seinfo.c b/secmds/seinfo.c
+index a970890..54b2a6a 100644
+--- a/secmds/seinfo.c
++++ b/secmds/seinfo.c
+@@ -1720,7 +1720,7 @@ int main(int argc, char **argv)
+ 		case 'b':	       /* conditional booleans */
+ 			bools = 1;
+ 			if (optarg != 0)
+-				bool_name = optarg;
++				bool_name = selinux_boolean_sub(optarg);
+ 			break;
+ 		case OPT_INITIALSID:
+ 			isids = 1;
+diff --git a/secmds/sesearch.c b/secmds/sesearch.c
+index 387d526..e1436a7 100644
+--- a/secmds/sesearch.c
++++ b/secmds/sesearch.c
+@@ -1067,7 +1067,7 @@ int main(int argc, char **argv)
+ 				printf("Missing boolean for -b (--bool)\n");
+ 				exit(1);
+ 			}
+-			cmd_opts.bool_name = strdup(optarg);
++			cmd_opts.bool_name = strdup(selinux_boolean_sub(optarg));
+ 			if (!cmd_opts.bool_name) {
+ 				fprintf(stderr, "%s\n", strerror(errno));
+ 				exit(1);
+-- 
+1.8.5.3
+

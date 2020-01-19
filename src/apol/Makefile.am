@@ -27,12 +27,15 @@ dist_setools_DATA = apol_help.txt domaintrans_help.txt file_relabel_help.txt \
 
 EXTRA_DIST = \
 	analysis_tab.tcl \
+	bounds_tab.tcl \
 	classes_perms_tab.tcl \
 	common_widgets.tcl \
 	cond_bools_tab.tcl \
 	cond_rules_tab.tcl \
+	constraints_tab.tcl \
 	context_dialog.tcl \
 	context_selector.tcl \
+	default_objects_tab.tcl \
 	directflow_module.tcl \
 	domaintrans_module.tcl \
 	file_contexts_tab.tcl \
@@ -43,9 +46,11 @@ EXTRA_DIST = \
 	initial_sids_tab.tcl \
 	level_dialog.tcl \
 	mls_tab.tcl \
+	namespaces_tab.tcl \
 	netcontexts_tab.tcl \
 	open_policy_dialog.tcl \
 	perms_map.tcl \
+	polcap_tab.tcl \
 	policyconf.tcl \
 	progress_dialog.tcl \
 	range_dialog.tcl \

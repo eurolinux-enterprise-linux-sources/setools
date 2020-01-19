@@ -34,6 +34,7 @@ VERS_1.2 {
 		qpol_policy_reevaluate_conds;
 		qpol_portcon_*;
 		qpol_range_trans_*;
+		qpol_filename_trans_*;
 		qpol_role_*;
 		qpol_syn_avrule_*;
 		qpol_syn_terule_*;
@@ -62,12 +63,17 @@ VERS_1.3 {
 VERS_1.4 {
 	global:
 		qpol_type_get_ispermissive;
+		qpol_type_get_parent_name;
 } VERS_1.3;
 
 VERS_1.5 {
 	global:
 		qpol_policy_permissive_*;
 		qpol_permissive_*;
+		qpol_typebounds_*;
+		qpol_rolebounds_*;
+		qpol_userbounds_*;
 		qpol_policy_polcap_*;
 		qpol_polcap_*;
+		qpol_default_object_*;
 } VERS_1.4;
