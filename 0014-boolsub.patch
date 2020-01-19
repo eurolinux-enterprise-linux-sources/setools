@@ -1,0 +1,24 @@
+diff -up ./setools-3.3.7/secmds/seinfo.c~ ./setools-3.3.7/secmds/seinfo.c
+--- ./setools-3.3.7/secmds/seinfo.c~	2013-03-14 15:26:31.467121596 -0400
++++ ./setools-3.3.7/secmds/seinfo.c	2013-03-14 15:35:20.154650517 -0400
+@@ -1705,7 +1705,7 @@ int main(int argc, char **argv)
+ 		case 'b':	       /* conditional booleans */
+ 			bools = 1;
+ 			if (optarg != 0)
+-				bool_name = optarg;
++				bool_name = selinux_boolean_sub(optarg);
+ 			break;
+ 		case OPT_INITIALSID:
+ 			isids = 1;
+diff -up ./setools-3.3.7/secmds/sesearch.c~ ./setools-3.3.7/secmds/sesearch.c
+--- ./setools-3.3.7/secmds/sesearch.c~	2013-03-14 15:26:31.539121944 -0400
++++ ./setools-3.3.7/secmds/sesearch.c	2013-03-14 15:34:36.615445562 -0400
+@@ -1056,7 +1056,7 @@ int main(int argc, char **argv)
+ 				printf("Missing boolean for -b (--bool)\n");
+ 				exit(1);
+ 			}
+-			cmd_opts.bool_name = strdup(optarg);
++			cmd_opts.bool_name = strdup(selinux_boolean_sub(optarg));
+ 			if (!cmd_opts.bool_name) {
+ 				fprintf(stderr, "%s\n", strerror(errno));
+ 				exit(1);
