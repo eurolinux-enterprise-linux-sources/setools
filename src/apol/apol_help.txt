@@ -29,7 +29,7 @@ not report line numbers when searching monolithic binary polices.
 
 Apol provides compatibility with the current and previous policy
 syntax.  It supports analysis of monolithic policy versions 12 to the
-current version 21 and modular policy versions 5 and 6.
+current version 29 and modular policy versions to 17.
 
 See setools/ChangeLog for a list of new features in this release.  See
 setools/KNOWN_BUGS for a list of current bugs.
@@ -40,7 +40,12 @@ Menus
 Use 'Open' from the File menu to open a valid policy.  The policy may
 be monolithic or be composed of a base linked with multiple modules.
 Only one policy can be open at a time; opening a second policy will
-result in the first being closed.
+result in the first being closed. Note: If the kernel supports reading
+the currently loaded policy, then select "monolithic" and set the
+"Policy filename" path to either:
+    /selinux/policy
+  or
+    /sys/fs/selinux/policy
 
 The Query menu allows the user to save or load a query for a TE Rules
 search or for an analysis module listed on the Analysis tab.  Saving a
@@ -84,6 +89,8 @@ relate the core components of an SELinux policy.
   types.  Alternately, use the "Search using regular expression" box
   to search for types and/or attributes using a POSIX-style regular
   expression.
+
+  Permissive and bound types may also be searched.
 
   Classes/Perms tab
   -----------------
@@ -148,6 +155,23 @@ relate the core components of an SELinux policy.
   ---------------
   Select the FS Contexts tab to search filesystem-based contexts
   (fs_use_ and genfscon statements) defined in the policy.
+
+  Policy Capabilities tab
+  ---------------
+  Select the Policy Capabilities tab to display policy capabilities
+  defined in the policy.
+
+  Policy Namespaces tab
+  ---------------
+  Select the Policy Namespaces tab to display the namespaces defined
+  in the policy. For policies with a single namespace there will be
+  one namespace displayed: "GLOBAL-NS". For policies that can define
+  multiple namespaces (e.g CIL), all namespaces will be displayed
+  including "GLOBAL-NS".
+  If the namespace entry is double clicked then a list of Users, Roles,
+  Types, Attributes, Classes and Booleans applicable to that namespace
+  will be displayed (also if MLS enabled the Sensitivities and
+  Categories will also be shown).
 
 
 Policy Rules tabs
@@ -226,6 +250,10 @@ rules in a policy based on selected search criteria.
        the checkbox is enabled, returned rules instead will contain
        all of them.
 
+    4. FILENAME SUBTAB: provides options to refine a search
+       using the file name type_transition rule filename.  Only rules
+       that contain the selected file name will be returned.
+
   In the Results Tab for a given search, all rules that meet the
   search criteria are displayed.  In addition, if the policy that is
   opened is capable of showing line numbers, a hyperlink for each rule
@@ -260,6 +288,57 @@ rules in a policy based on selected search criteria.
       [Enabled] - indicates the rule is enabled
       [Disabled] - indicates the rule is disabled	
 
+ Constraints tab
+ ---------------
+  Select the Constraints tab to search through the constrain and
+  validatetrans constraint rules. If the current policy supports MLS
+  then these variants are also enabled.
+
+  Four different types of search criteria exist for constraints:
+
+    1. CONSTRAINT SELECTION: provides options to limit the scope of the
+       search as only those constraints selected will be included in the
+       search.  At least one must be selected.  NOTE: If no additional
+       search criteria is specified, apol will search for all of the
+       selected constraints.
+
+    2. CLASSES/PERMISSIONS SUBTAB: provides options to refine a search
+       using object classes and/or permissions in the same way as the
+       TE Rules tab described above.  Note that the validatetrans rules
+       do not use permissions.
+
+    3. LEFT SIDE OF EXPRESSION SUBTAB: provides an option to refine a
+       search based on the left keyword of a constraint.  When checked
+       the left hand side of each expression is read from the policy and
+       displayed in the drop down box.  A single keyword may then be
+       selected.
+
+    4. RIGHT SIDE OF EXPRESSION SUBTAB: provides options to refine a
+       search based on either the right keyword, user, role, type or type
+       attribute of a constraint.  When one of the boxes is checked
+       the right keywords, users, roles, types or type attributes are
+       read from the policy and displayed in the drop down box.  A single
+       item may then be selected.
+
+  Note: When displaying the constraint details from a binary policy, the
+        result will depend on the policy version:
+          a) For versions <= 28 it will always display types as the
+             compiler expanded any attributes before writing the binary
+             policy. Therefore searches should always be for types.
+          b) For versions >= 29 it will display whatever was defined in
+             the source policy, therefore searches may be on types or
+             attributes.
+
+  The Constraints Tab also supports multiple results windows.  Each
+  active window remembers the search options used for it, and will set
+  all the options accordingly when selected.  Use the "Update Search"
+  button to change the results displayed for the current window based
+  on the current search option.  "New Search" creates a new results
+  window based on the current search options.  Use the "Close Tab" bar
+  at the bottom to destroy a results window.  Also, the Constraints tab
+  provides the means to save/load search criteria to a file (see Menus
+  section above).
+
   RBAC Rules tab
   --------------
   Select the RBAC Rules tab to search role-based access control rules.
@@ -271,12 +350,17 @@ rules in a policy based on selected search criteria.
 
   Range Transition Rules tab
   --------------------------
-  Select the Range Transition Rules tab to search to search
+  Select the Range Transition Rules tab to search for
   range_transition rules by source and target types and by the MLS
   range.  There are three options when searching for ranges; find
   exact matches to the entered range, find rules that have ranges
   that contain the entered range, or find rules that have ranges 
   within the entered range.
+
+  Bounds Rules tab
+  --------------------------
+  Select the Bounds Rules tab to search for userbound, rolebound or
+  typebound rules by parent or child types.
 
   
 File Contexts tab

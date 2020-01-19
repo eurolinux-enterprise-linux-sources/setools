@@ -1,4 +1,4 @@
-AC_INIT(setools, 3.3.7, [Tresys Technology <setools@tresys.com>], [setools])
+AC_INIT(setools, 3.3.8, [Tresys Technology <setools@tresys.com>], [setools])
 AC_PREREQ([2.59])
 AC_CONFIG_SRCDIR(libqpol/src/policy.c)
 AC_CONFIG_HEADER(config.h)
@@ -8,26 +8,26 @@ AM_INIT_AUTOMAKE([-Wno-portability])
 dnl *** update these variables as versions change; also update AC_INIT ***
 
 libqpol_soversion=1
-libqpol_version=1.6
+libqpol_version=1.7
 
 libapol_soversion=4
-libapol_version=4.3
+libapol_version=4.4
 
 libpoldiff_soversion=1
-libpoldiff_version=1.3.2
+libpoldiff_version=1.3.3
 
 libsefs_soversion=4
-libsefs_version=4.0.3
+libsefs_version=4.0.4
 
 libseaudit_soversion=4
-libseaudit_version=4.4
+libseaudit_version=4.5
 
 setoolsdir='${prefix}/share/setools-3.3'
 javadir='${prefix}/share/java'
 
-version_min_sepol_major=1
-version_min_sepol_minor=12
-version_min_sepol_patch=27
+version_min_sepol_major=2
+version_min_sepol_minor=4
+version_min_sepol_patch=0
 
 dnl *** end of tunable values ***
 
@@ -194,7 +194,7 @@ AC_ARG_ENABLE(swig-java,
               enable_jswig="$enableval")
 if test "x${enable_jswig}" = xyes; then
    if test ${do_swigify} = no; then
-      AC_PROG_SWIG(1.3.28)
+      AC_PROG_SWIG(2.0.0)
    fi
    AC_JAVA_OPTIONS
    if test "x$JAVAPREFIX" = x; then
@@ -216,21 +216,23 @@ if test "x${enable_jswig}" = xyes; then
    do_swigify_java=yes
    do_swigify=yes
 fi
+
+AM_PATH_PYTHON(2.7)
+
 AC_ARG_ENABLE(swig-python,
               AC_HELP_STRING([--enable-swig-python],
                              [build SWIG interfaces for Python]),
               enable_pyswig="$enableval")
 if test "x${enable_pyswig}" = xyes; then
    if test ${do_swigify} = no; then
-      AC_PROG_SWIG(1.3.28)
+      AC_PROG_SWIG(2.0.0)
    fi
-   AM_PATH_PYTHON(2.3)
    SWIG_PYTHON
    do_swigify_python=yes
    do_swigify=yes
 fi
 if test ${do_swigify} = "yes"; then
-   AC_PROG_SWIG(1.3.28)
+   AC_PROG_SWIG(2.0.0)
 fi
 build_apol=yes
 AC_ARG_ENABLE(swig-tcl,
@@ -239,7 +241,7 @@ AC_ARG_ENABLE(swig-tcl,
               enable_tclswig="$enableval", enable_tclswig="yes")
 if test "x${enable_tclswig}" = xyes; then
    if test ${do_swigify} = no; then
-      AC_PROG_SWIG(1.3.28)
+      AC_PROG_SWIG(2.0.0)
    fi
    TEA_INIT(3.5)
    TEA_PATH_TCLCONFIG
@@ -497,9 +499,25 @@ sepol_save_CPPFLAGS="${CPPFLAGS}"
 CFLAGS="${CFLAGS} ${SELINUX_CFLAGS} ${SELINUX_LIB_FLAG}"
 CPPFLAGS="${CPPFLAGS} ${SELINUX_CFLAGS}"
 
-dnl check for user and role mapping, added in libsepol version 2.0.29
-AC_MSG_CHECKING([for user and role mappings])
+dnl check for role attribute, added in libsepol 2.0.46
+AC_MSG_CHECKING([for libsepol role_set_expand() role attribute support])
 AC_COMPILE_IFELSE(
+                  [AC_LANG_SOURCE([
+#include <sepol/policydb/expand.h>
+int main () {
+  return role_set_expand(NULL, NULL, NULL, NULL, NULL);
+}])],
+                  sepol_role_attrs="yes",
+                  sepol_role_attrs="no")
+AC_MSG_RESULT([${sepol_role_attrs}])
+
+if test ${sepol_role_attrs} == "yes"; then
+	sepol_new_user_role_mapping="yes"
+	sepol_role_set_expand_base="yes"
+else
+    dnl check for user and role mapping, added in libsepol version 2.0.29
+    AC_MSG_CHECKING([for libsepol role_set_expand() user and role mappings])
+    AC_COMPILE_IFELSE(
                   [AC_LANG_SOURCE([
 #include <sepol/policydb/expand.h>
 int main () {
@@ -507,7 +525,58 @@ int main () {
 }])],
                   sepol_new_user_role_mapping="yes",
                   sepol_new_user_role_mapping="no")
-AC_MSG_RESULT([${sepol_new_user_role_mapping}])
+    AC_MSG_RESULT([${sepol_new_user_role_mapping}])
+
+    if test ${sepol_new_user_role_mapping} == "no"; then
+        dnl if this is not the original role_set_expand(), this libsepol is too new
+        AC_MSG_CHECKING([for libsepol role_set_expand() original version])
+        AC_COMPILE_IFELSE(
+                  [AC_LANG_SOURCE([
+#include <sepol/policydb/expand.h>
+int main () {
+  return role_set_expand(NULL, NULL, NULL);
+}])],
+                  sepol_role_set_expand_base="yes",
+                  sepol_role_set_expand_base="no")
+        AC_MSG_RESULT([${sepol_role_set_expand_base}])
+
+        if test ${sepol_role_set_expand_base} == "no"; then
+           AC_MSG_ERROR([this version of libsepol is incompatible with SETools])
+        fi
+    else
+        sepol_role_set_expand_base="yes"
+    fi
+fi
+
+dnl check for constraint names, added in libsepol version ??
+AC_CHECK_DECL([POLICYDB_VERSION_CONSTRAINT_NAMES],
+                sepol_new_constraint_names="yes",
+                sepol_new_constraint_names="no",
+                [#include <sepol/policydb/policydb.h>])
+
+dnl check for default object type, added in libsepol version ??
+AC_CHECK_DECL([POLICYDB_VERSION_DEFAULT_TYPE],
+                sepol_new_default_type="yes",
+                sepol_new_default_type="no",
+                [#include <sepol/policydb/policydb.h>])
+
+dnl check for default object user/role/range added in libsepol version ??
+AC_CHECK_DECL([POLICYDB_VERSION_NEW_OBJECT_DEFAULTS],
+                sepol_new_object_defaults="yes",
+                sepol_new_object_defaults="no",
+                [#include <sepol/policydb/policydb.h>])
+
+dnl check for filename trans rule, added in libsepol version ??
+AC_CHECK_DECL([POLICYDB_VERSION_FILENAME_TRANS],
+                sepol_new_filename_trans="yes",
+                sepol_new_filename_trans="no",
+                [#include <sepol/policydb/policydb.h>])
+
+dnl check for user/role/type bounds, added in libsepol version ??
+AC_CHECK_DECL([POLICYDB_VERSION_BOUNDARY],
+                sepol_new_bounds="yes",
+                sepol_new_bounds="no",
+                [#include <sepol/policydb/policydb.h>])
 
 dnl check for permissive types, added in libsepol version 2.0.26
 AC_CHECK_DECL([TYPE_FLAGS_PERMISSIVE],
@@ -816,8 +885,26 @@ fi
 if test ${sepol_new_permissive_types} == "yes"; then
    AC_DEFINE(HAVE_SEPOL_PERMISSIVE_TYPES, 1, [if types can be marked as permissive])
 fi
+if test ${sepol_new_constraint_names} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_CONSTRAINT_NAMES, 1, [if source policy types/attributes are present])
+fi
+if test ${sepol_new_default_type} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_DEFAULT_TYPE, 1, [if default_user rule present])
+fi
+if test ${sepol_new_object_defaults} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_NEW_OBJECT_DEFAULTS, 1, [if default_user/role/range rules are present])
+fi
+if test ${sepol_new_filename_trans} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_FILENAME_TRANS, 1, [if the filename transition rule present])
+fi
+if test ${sepol_new_bounds} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_BOUNDARY, 1, [if bounds rules are present])
+fi
 if test ${sepol_new_user_role_mapping} == "yes"; then
    AC_DEFINE(HAVE_SEPOL_USER_ROLE_MAPPING, 1, [if users and roles are mapped during policy expansion])
+fi
+if test ${sepol_role_attrs} == "yes"; then
+   AC_DEFINE(HAVE_SEPOL_ROLE_ATTRS, 1, [if role attributes are supported])
 fi
 
 if test ${use_shared} == "yes"; then
@@ -888,6 +975,8 @@ AC_CONFIG_FILES([Makefile VERSION \
                  sediff/Makefile \
                  man/Makefile \
                  debian/Makefile \
+                 python/Makefile \
+                 python/setools/Makefile \
                  packages/Makefile packages/rpm/Makefile \
                  packages/libqpol.pc packages/libapol.pc packages/libpoldiff.pc packages/libseaudit.pc packages/libsefs.pc])
 

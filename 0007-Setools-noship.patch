@@ -1,73 +1,50 @@
-diff -up setools-3.3.7/Makefile.am.noship setools-3.3.7/Makefile.am
---- setools-3.3.7/Makefile.am.noship	2008-02-22 14:06:28.000000000 -0500
-+++ setools-3.3.7/Makefile.am	2013-01-30 09:18:59.775157146 -0500
-@@ -8,9 +8,8 @@ endif
- if BUILD_GUI
-   MAYBE_GUI = seaudit
- endif
--# sediffx is also built conditionally, from sediffx/Makefile.am
- 
--SUBDIRS = libqpol libapol libsefs libpoldiff libseaudit secmds sechecker sediff man packages debian $(MAYBE_APOL) $(MAYBE_GUI)
-+SUBDIRS = libqpol libapol libsefs libpoldiff libseaudit secmds sediff man packages debian $(MAYBE_APOL) $(MAYBE_GUI)
- 
- #old indent opts
- #INDENT_OPTS = -npro -nbad -bap -sob -ss -l132 -di1 -nbc -br -nbbb -c40 -cd40 -ncdb -ce -cli0 -cp40 -ncs -d0 -nfc1 -nfca -i8 -ts8 -ci8 -lp -ip0 -npcs -npsl -sc
-@@ -49,12 +48,6 @@ seaudit: libqpol libapol libseaudit
- sediff: libqpol libapol libpoldiff
- 	$(MAKE) -C $(top_srcdir)/sediff sediff
- 
--sediffx: libqpol libapol libpoldiff
--	$(MAKE) -C $(top_srcdir)/sediff sediffx
--
--sechecker: libqpol libapol libsefs
--	$(MAKE) -C $(top_srcdir)/sechecker
--
- help:
- 	@echo "Make targets for SETools:"
- 	@echo "   all:          build everything, but do not install"
-@@ -65,8 +58,6 @@ help:
- 	@echo "   secmds:       build command line tools"
- 	@echo "   seaudit:      build audit log analysis tools"
- 	@echo "   sediff:       build semantic policy diff command line tool"
--	@echo "   sediffx:      build semantic policy diff graphical tool"
--	@echo "   sechecker:    build policy checking tool"
- 	@echo ""
- 	@echo "   install-logwatch:   install LogWatch config files for seaudit-report"
- 	@echo "                       (requires LogWatch and root privileges)"
-@@ -78,9 +69,9 @@ install-logwatch:
+From a39d0831d654292fb2a1f7b9ee18ecc9239f610f Mon Sep 17 00:00:00 2001
+From: Miroslav Grepl <mgrepl@redhat.com>
+Date: Fri, 11 Apr 2014 18:38:34 +0200
+Subject: [PATCH 07/11] Setools noship
+
+---
+ Makefile.am         | 26 +++-----------------------
+ configure.ac        |  2 +-
+ man/Makefile.am     | 15 +++------------
+ seaudit/Makefile.am | 31 +++----------------------------
+ secmds/Makefile.am  | 14 +-------------
+ sediff/Makefile.am  | 32 ++------------------------------
+ 6 files changed, 13 insertions(+), 107 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 176c8ea..4cac386 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -78,9 +70,9 @@ install-logwatch:
  	$(MAKE) -C $(top_srcdir)/seaudit install-logwatch
  
  .PHONY: libqpol libapol libpoldiff libsefs libseaudit \
 -	apol secmds seaudit sediff sediffx sechecker \
-+	apol secmds seaudit sediff \
++	apol secmds seaudit sediff sechecker\
  	install-logwatch help \
 -	seinfo sesearch indexcon findcon replcon searchcon \
-+	seinfo sesearch \
++	seinfo sesearch findcon \
  	packages
  
  seinfo: libqpol libapol
-@@ -89,18 +80,6 @@ seinfo: libqpol libapol
- sesearch: libqpol libapol
- 	$(MAKE) -C $(top_srcdir)/secmds sesearch
- 
--indexcon: libqpol libapol libsefs
--	$(MAKE) -C $(top_srcdir)/secmds indexcon
--
--findcon: libqpol libapol libsefs
--	$(MAKE) -C $(top_srcdir)/secmds findcon
--
--replcon: libqpol libapol libsefs
--	$(MAKE) -C $(top_srcdir)/secmds replcon
--
--searchcon: libqpol libapol libsefs
--	$(MAKE) -C $(top_srcdir)/secmds searchcon
--
- packages:
- 	$(MAKE) -C $(top_srcdir)/packages
- 
-diff -up setools-3.3.7/man/Makefile.am.noship setools-3.3.7/man/Makefile.am
---- setools-3.3.7/man/Makefile.am.noship	2007-08-02 17:16:33.000000000 -0400
-+++ setools-3.3.7/man/Makefile.am	2013-01-30 09:16:13.696871566 -0500
+diff --git a/configure.ac b/configure.ac
+index 2a5b55b..5b1da5e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -63,7 +63,7 @@ if test ${ac_cv_prog_cc_c99} = "no"; then
+ fi
+ AC_PROG_CXX
+ AC_LANG([C])
+-AC_PROG_LIBTOOL
++AC_PROG_RANLIB
+ AC_PROG_LN_S
+ AC_PROG_LEX
+ AC_PROG_YACC
+diff --git a/man/Makefile.am b/man/Makefile.am
+index 0fafccb..f88e00a 100644
+--- a/man/Makefile.am
++++ b/man/Makefile.am
 @@ -1,19 +1,10 @@
  if BUILD_GUI
    MAYBEMANS = apol.1 \
@@ -84,23 +61,24 @@ diff -up setools-3.3.7/man/Makefile.am.noship setools-3.3.7/man/Makefile.am
 -man_MANS = findcon.1 indexcon.1 replcon.1 \
 -	sechecker.1 \
 -	sediff.1 \
-+man_MANS = sediff.1 \
++man_MANS = findcon.1 sediff.1 sechecker.1 \
  	seinfo.1 sesearch.1 $(MAYBEMANS)
 -
 -seaudit-report.8: seaudit-report.8.in Makefile
 -	sed -e 's|\@setoolsdir\@|$(setoolsdir)|g' $< > $@
 -
 -CLEANFILES = seaudit-report.8
-diff -up setools-3.3.7/seaudit/Makefile.am.noship setools-3.3.7/seaudit/Makefile.am
---- setools-3.3.7/seaudit/Makefile.am.noship	2008-02-22 14:06:28.000000000 -0500
-+++ setools-3.3.7/seaudit/Makefile.am	2013-01-30 09:16:13.697871568 -0500
+diff --git a/seaudit/Makefile.am b/seaudit/Makefile.am
+index 1987c99..3fa4413 100644
+--- a/seaudit/Makefile.am
++++ b/seaudit/Makefile.am
 @@ -1,5 +1,4 @@
  setoolsdir = @setoolsdir@
 -bin_PROGRAMS = seaudit-report
  sbin_PROGRAMS = seaudit
  
  AM_CFLAGS = @DEBUGCFLAGS@ @WARNCFLAGS@ @PROFILECFLAGS@ @SELINUX_CFLAGS@ \
-@@ -20,13 +19,10 @@ LDADD = @SELINUX_LIB_FLAG@ @SEAUDIT_LIB_
+@@ -20,13 +19,10 @@ LDADD = @SELINUX_LIB_FLAG@ @SEAUDIT_LIB_FLAG@ @APOL_LIB_FLAG@ @QPOL_LIB_FLAG@
  dist_setools_DATA = \
  	seaudit.glade \
  	seaudit_help.txt \
@@ -115,7 +93,7 @@ diff -up setools-3.3.7/seaudit/Makefile.am.noship setools-3.3.7/seaudit/Makefile
  
  seaudit_SOURCES = \
  	filter_view.c filter_view.h \
-@@ -50,31 +46,12 @@ seaudit_DEPENDENCIES = $(top_builddir)/l
+@@ -50,31 +46,12 @@ seaudit_DEPENDENCIES = $(top_builddir)/libseaudit/src/libseaudit.so \
  dot_seaudit: dot_seaudit.in Makefile
  	sed -e 's|\@setoolsdir\@|$(setoolsdir)|g' $< > $@
  
@@ -156,39 +134,22 @@ diff -up setools-3.3.7/seaudit/Makefile.am.noship setools-3.3.7/seaudit/Makefile
 -
 -CLEANFILES = dot_seaudit seaudit-report-service
 +CLEANFILES = dot_seaudit
-diff -up setools-3.3.7/secmds/Makefile.am.noship setools-3.3.7/secmds/Makefile.am
---- setools-3.3.7/secmds/Makefile.am.noship	2007-08-02 17:16:33.000000000 -0400
-+++ setools-3.3.7/secmds/Makefile.am	2013-01-30 09:16:13.698871569 -0500
+diff --git a/secmds/Makefile.am b/secmds/Makefile.am
+index ddc88b1..7fa4364 100644
+--- a/secmds/Makefile.am
++++ b/secmds/Makefile.am
 @@ -1,6 +1,6 @@
  # various setools command line tools
  
 -bin_PROGRAMS = seinfo sesearch findcon replcon indexcon
-+bin_PROGRAMS = seinfo sesearch
++bin_PROGRAMS = seinfo sesearch findcon
  
  # These are for indexcon so that it is usable on machines without setools
  STATICLIBS = ../libsefs/src/libsefs.a ../libapol/src/libapol.a ../libqpol/src/libqpol.a -lsqlite3
-@@ -18,18 +18,6 @@ seinfo_SOURCES = seinfo.c
- 
- sesearch_SOURCES = sesearch.c
- 
--indexcon_SOURCES = indexcon.cc
--indexcon_LDADD = @SELINUX_LIB_FLAG@ $(STATICLIBS)
--indexcon_DEPENDENCIES = $(DEPENDENCIES) $(top_builddir)/libsefs/src/libsefs.so
--
--findcon_SOURCES = findcon.cc
--findcon_LDADD = @SEFS_LIB_FLAG@ $(LDADD)
--findcon_DEPENDENCIES = $(DEPENDENCIES) $(top_builddir)/libsefs/src/libsefs.so
--
--replcon_SOURCES = replcon.cc
--replcon_LDADD = @SEFS_LIB_FLAG@ $(LDADD)
--replcon_DEPENDENCIES = $(DEPENDENCIES) $(top_builddir)/libsefs/src/libsefs.so
--
- $(top_builddir)/libapol/src/libapol.so:
- 	$(MAKE) -C $(top_builddir)/libapol/src $(notdir $@)
- 
-diff -up setools-3.3.7/sediff/Makefile.am.noship setools-3.3.7/sediff/Makefile.am
---- setools-3.3.7/sediff/Makefile.am.noship	2007-04-25 15:20:20.000000000 -0400
-+++ setools-3.3.7/sediff/Makefile.am	2013-01-30 09:16:13.698871569 -0500
+diff --git a/sediff/Makefile.am b/sediff/Makefile.am
+index 3f53cd3..2d9ce84 100644
+--- a/sediff/Makefile.am
++++ b/sediff/Makefile.am
 @@ -1,13 +1,6 @@
  setoolsdir = @setoolsdir@
  
@@ -204,7 +165,7 @@ diff -up setools-3.3.7/sediff/Makefile.am.noship setools-3.3.7/sediff/Makefile.a
  
  AM_CFLAGS = @DEBUGCFLAGS@ @WARNCFLAGS@ @PROFILECFLAGS@ @SELINUX_CFLAGS@ \
  	@QPOL_CFLAGS@ @APOL_CFLAGS@ @POLDIFF_CFLAGS@
-@@ -15,14 +8,7 @@ AM_LDFLAGS = @DEBUGLDFLAGS@ @WARNLDFLAGS
+@@ -15,14 +8,7 @@ AM_LDFLAGS = @DEBUGLDFLAGS@ @WARNLDFLAGS@ @PROFILELDFLAGS@
  
  LDADD = @SELINUX_LIB_FLAG@ @POLDIFF_LIB_FLAG@ @APOL_LIB_FLAG@ @QPOL_LIB_FLAG@
  
@@ -220,7 +181,7 @@ diff -up setools-3.3.7/sediff/Makefile.am.noship setools-3.3.7/sediff/Makefile.a
  
  DEPENDENCIES = $(top_builddir)/libpoldiff/src/libpoldiff.so \
  	$(top_builddir)/libapol/src/libapol.so \
-@@ -30,20 +16,6 @@ DEPENDENCIES = $(top_builddir)/libpoldif
+@@ -30,20 +16,6 @@ DEPENDENCIES = $(top_builddir)/libpoldiff/src/libpoldiff.so \
  
  sediff_SOURCES = sediff.c
  
@@ -241,15 +202,6 @@ diff -up setools-3.3.7/sediff/Makefile.am.noship setools-3.3.7/sediff/Makefile.a
  $(top_builddir)/libpoldiff/src/libpoldiff.so:
  	$(MAKE) -C $(top_builddir)/libpoldiff/src $(notdir $@)
  
-diff -up setools-3.3.7/configure.ac~ setools-3.3.7/configure.ac
---- setools-3.3.7/configure.ac~	2013-01-30 09:52:05.689136955 -0500
-+++ setools-3.3.7/configure.ac	2013-01-30 09:56:26.853722063 -0500
-@@ -63,7 +63,7 @@ if test ${ac_cv_prog_cc_c99} = "no"; the
- fi
- AC_PROG_CXX
- AC_LANG([C])
--AC_PROG_LIBTOOL
-+AC_PROG_RANLIB
- AC_PROG_LN_S
- AC_PROG_LEX
- AC_PROG_YACC
+-- 
+1.8.5.3
+

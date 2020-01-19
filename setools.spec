@@ -1,31 +1,33 @@
-%define setools_maj_ver 3.3
-%define setools_min_ver 7
+%global setools_maj_ver 3.3
+%global setools_min_ver 8
+%global gitver f1e5b20
 
 Name: setools
 Version: %{setools_maj_ver}.%{setools_min_ver}
-Release: 40%{?dist}
+Release: 2%{?dist}
 License: GPLv2
 URL: http://oss.tresys.com/projects/setools
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
-Source: http://oss.tresys.com/projects/setools/chrome/site/dists/setools-%{version}/setools-%{version}.tar.bz2
+# Source: http://oss.tresys.com/projects/setools/chrome/site/dists/setools-%{version}/setools-%{version}.tar.bz2
+# git clone https://github.com/TresysTechnology/setools3.git
+# cd setools3
+# gitrev=`git rev-parse --verify --short HEAD`
+# git archive --format=tar --prefix=setools-3.3.8/ HEAD | bzip2 > setools-3.3.8-$gitrev.tar.bz2
+Source: setools-%{version}-%{gitver}.tar.bz2
 Source1: setools.pam
 Source2: apol.desktop
 Source3: seaudit.desktop
-Patch2: 0002-setools-should-exit-with-an-error-status-if-it-gets-.patch
-Patch3: 0003-Since-we-do-not-ship-neverallow-rules-all-always-fai.patch
-Patch4: 0004-Fix-man-pages-and-getoptions.patch
-Patch5: 0005-Fix-sepol-calls-to-work-with-latest-libsepol.patch
-Patch6: 0006-Changes-to-support-named-file_trans-rules.patch
-Patch7: 0007-Remove-unused-variables.patch
-Patch8: 0008-Fix-output-to-match-policy-lines.patch
-Patch9: 0009-Fix-swig-coding-style-for-structures.patch
-Patch10: 0010-selinux_current_policy_path.patch
-Patch11: 0011-setools-noship.patch
-Patch12: 0012-seaudit.patch
-Patch13: 0013-swig.patch
-Patch14: 0014-boolsub.patch
-Patch15: 0015-aliases.patch
-Patch16: 0016-cmdline.patch
+Patch1: 0001-libqpol-Do-not-fail-on-neverallow-rule-query.patch 
+Patch2: 0002-Fix-sepol-calls-to-work-with-latest-libsepol.patch
+Patch4: 0004-Apply-selinux_current_policy_path-patch.patch
+Patch5: 0005-Apply-seaudit-patch-for-progress.c.patch
+Patch6: 0006-Add-support-for-boolean-subs.patch
+Patch7: 0007-Setools-noship.patch
+Patch8: 0008-Add-alias-support-to-seinfo-t.patch
+Patch9: 0009-Fix-help-message-on-sesearch-D.patch
+Patch11: 0011-Fix-Wformat-security-issues.patch
+# Patch12: 0012-Fix-configure.ac-to-use-SWIG-3.0.0.patch
+Patch13: 0013-libqpol-Skip-types-when-building-type-attribute-map.patch
 
 Summary: Policy analysis tools for SELinux
 Group: System Environment/Base
@@ -35,8 +37,8 @@ Requires: setools-libs = %{version}-%{release} setools-libs-tcl = %{version}-%{r
 %define autoconf_ver 2.59
 %define bwidget_ver 1.8
 %define gtk_ver 2.8
-%define sepol_ver 2.1.8-5
-%define selinux_ver 2.1.12-10
+%define sepol_ver 2.5-8
+%define selinux_ver 2.5-12
 %define sqlite_ver 3.2.0
 %define swig_ver 2.0.7-3
 %define tcltk_ver 8.4.9
@@ -153,21 +155,18 @@ This package includes the following graphical tools:
 
 %prep
 %setup -q
-%patch2 -p 1 -b .exitstatus
-%patch3 -p 1 -b .neverallow
-%patch4 -p 1 -b .manpage
-%patch5 -p 1 -b .libsepol
-%patch6 -p 1 -b .filenametrans
-%patch7 -p 1 -b .unused 
-%patch8 -p 1 -b .fixoutput
-%patch9 -p 1 -b .fixswig
-%patch10 -p 1 -b .current
-%patch11 -p 1 -b .noship
-%patch12 -p 1 -b .seaudit
-%patch13 -p 1 -b .swig
-%patch14 -p 2 -b .boolsub
-%patch15 -p 1 -b .aliases
-%patch16 -p 1 -b .cmdline
+%patch1 -p 1 -b .neverallow
+%patch2 -p 1 -b .libsepol
+%patch4 -p 1 -b .current_policy
+%patch5 -p 1 -b .seaudit
+%patch6 -p 1 -b .boolean-subs
+%patch7 -p 1 -b .noship
+%patch8 -p 1 -b .seinfo-t
+%patch9 -p 1 -b .sesearch-D
+%patch11 -p 1 -b .Wformat-security
+# %patch12 -p 1 -b .version
+%patch13 -p 1 -b .libqpol
+
 %ifarch sparc sparcv9 sparc64 s390 s390x
     for file in `find . -name Makefile.am`; do
         sed -i -e 's:-fpic:-fPIC:' $file;
@@ -215,12 +214,15 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files libs
 %defattr(-,root,root,-)
-%doc AUTHORS ChangeLog COPYING COPYING.GPL COPYING.LGPL KNOWN-BUGS NEWS README
+%{!?_licensedir:%global license %%doc}
+%license COPYING COPYING.GPL COPYING.LGPL
+%doc AUTHORS ChangeLog KNOWN-BUGS NEWS README
 %{_libdir}/libqpol.so.*
 %{_libdir}/libapol.so.*
 %{_libdir}/libpoldiff.so.*
 %{_libdir}/libsefs.so.*
 %{_libdir}/libseaudit.so.*
+%{tcllibdir}/apol_tcl/
 %dir %{setoolsdir}
 
 %files libs-tcl
@@ -247,6 +249,12 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/seinfo
 %{_bindir}/sesearch
 %{_bindir}/sediff
+%{_bindir}/findcon
+%{_bindir}/sechecker
+%{setoolsdir}/sechecker-profiles/
+%{setoolsdir}/sechecker_help.txt
+%{_mandir}/man1/findcon.1.gz
+%{_mandir}/man1/sechecker.1.gz
 %{_mandir}/man1/sediff.1.gz
 %{_mandir}/man1/seinfo.1.gz
 %{_mandir}/man1/sesearch.1.gz
@@ -255,7 +263,6 @@ rm -rf ${RPM_BUILD_ROOT}
 %defattr(-,root,root,-)
 %{_bindir}/seaudit
 %{_bindir}/apol
-%{tcllibdir}/apol_tcl/
 %{setoolsdir}/apol_help.txt
 %{setoolsdir}/domaintrans_help.txt
 %{setoolsdir}/file_relabel_help.txt
@@ -284,6 +291,33 @@ rm -rf ${RPM_BUILD_ROOT}
 %postun libs-tcl -p /sbin/ldconfig
 
 %changelog
+* Thu Oct 19 2017 Vit Mojzis <vmojzis@redhat.com> - 3.3.8-2
+- libqpol: Do not fail on neverallow rule query
+
+* Mon May 23 2016 Petr Lautrbach <plautrba@redhat.com> - 3.3.8-1.1
+- Rebase to the latest setools3 sources
+
+* Tue Mar 18 2014 Dan Walsh <dwalsh@redhat.com> - 3.3.7-46
+- Move apol_tcl to setools-lib package
+Resolves: #1076429
+
+* Thu Feb 13 2014 Dan Walsh <dwalsh@redhat.com> - 3.3.7-45
+- Fix sesearch --all
+
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 3.3.7-44
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.3.7-43
+- Mass rebuild 2013-12-27
+
+* Wed Nov 27 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-42
+- Add back in findcon and sechecker for RHEL customer request
+Resolves: 927522
+
+* Mon Sep 16 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-41
+- Cleanup Destop files.
+Resolves: 884174
+
 * Fri Jul 19 2013 Dan Walsh <dwalsh@redhat.com> - 3.3.7-40
 - Fix help message on sesearch -D
 

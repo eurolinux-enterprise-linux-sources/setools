@@ -1,9 +1,16 @@
-diff -up setools-3.3.7/libapol/src/policy-query.c~ setools-3.3.7/libapol/src/policy-query.c
-diff -up setools-3.3.7/libqpol/include/qpol/type_query.h~ setools-3.3.7/libqpol/include/qpol/type_query.h
-diff -up setools-3.3.7/libqpol/tests/iterators-tests.c~ setools-3.3.7/libqpol/tests/iterators-tests.c
-diff -up setools-3.3.7/secmds/seinfo.c~ setools-3.3.7/secmds/seinfo.c
---- setools-3.3.7/secmds/seinfo.c~	2013-03-25 11:30:23.161633059 -0400
-+++ setools-3.3.7/secmds/seinfo.c	2013-03-28 13:08:07.281751011 -0400
+From 1136e61a9839ad3b60eb2da4d624413c02545c7d Mon Sep 17 00:00:00 2001
+From: Miroslav Grepl <mgrepl@redhat.com>
+Date: Fri, 11 Apr 2014 18:42:27 +0200
+Subject: [PATCH 08/11] Add alias support to seinfo -t
+
+---
+ secmds/seinfo.c | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/secmds/seinfo.c b/secmds/seinfo.c
+index 54b2a6a..1878c49 100644
+--- a/secmds/seinfo.c
++++ b/secmds/seinfo.c
 @@ -46,6 +46,7 @@
  #include <string.h>
  #include <assert.h>
@@ -17,18 +24,18 @@ diff -up setools-3.3.7/secmds/seinfo.c~ setools-3.3.7/secmds/seinfo.c
  static char *policy_file = NULL;
  
 +static void print_type_aliases(FILE * fp, const qpol_type_t * type_datum, const apol_policy_t * policydb);
- static void print_type_attrs(FILE * fp, const qpol_type_t * type_datum, const apol_policy_t * policydb, const int expand);
- static void print_attr_types(FILE * fp, const qpol_type_t * type_datum, const apol_policy_t * policydb, const int expand);
- static void print_user_roles(FILE * fp, const qpol_user_t * user_datum, const apol_policy_t * policydb, const int expand);
-@@ -511,6 +513,7 @@ static int print_types(FILE * fp, const
- 		if (qpol_policy_get_type_by_name(q, name, &type_datum))
+ static int print_type_attrs(FILE * fp, const qpol_type_t * type_datum, const apol_policy_t * policydb, const int expand);
+ static int print_attr_types(FILE * fp, const qpol_type_t * type_datum, const apol_policy_t * policydb, const int expand);
+ static int print_user_roles(FILE * fp, const qpol_user_t * user_datum, const apol_policy_t * policydb, const int expand);
+@@ -514,6 +516,7 @@ static int print_types(FILE * fp, const char *name, int expand, const apol_polic
  			goto cleanup;
- 		print_type_attrs(fp, type_datum, policydb, expand);
-+		print_type_aliases(fp, type_datum, policydb);
+ 		if (print_type_attrs(fp, type_datum, policydb, expand))
+ 			goto cleanup;
++        print_type_aliases(fp, type_datum, policydb);
  	} else {
  		if (qpol_policy_get_type_iter(q, &iter))
  			goto cleanup;
-@@ -1897,6 +1900,51 @@ int main(int argc, char **argv)
+@@ -1912,6 +1915,51 @@ int main(int argc, char **argv)
  }
  
  /**
@@ -80,3 +87,6 @@ diff -up setools-3.3.7/secmds/seinfo.c~ setools-3.3.7/secmds/seinfo.c
   * Prints a textual representation of a type, and possibly
   * all of that type's attributes.
   *
+-- 
+1.8.5.3
+

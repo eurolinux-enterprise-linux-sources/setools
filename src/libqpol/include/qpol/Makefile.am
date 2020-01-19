@@ -7,6 +7,7 @@ qpol_HEADERS = \
 	cond_query.h \
 	constraint_query.h \
 	context_query.h \
+	default_object_query.h \
 	fs_use_query.h \
 	genfscon_query.h \
 	isid_query.h \
@@ -17,6 +18,7 @@ qpol_HEADERS = \
 	netifcon_query.h \
 	nodecon_query.h \
 	permissive_query.h \
+	bounds_query.h \
 	polcap_query.h \
 	policy.h \
 	policy_extend.h \
@@ -25,6 +27,7 @@ qpol_HEADERS = \
 	role_query.h \
 	syn_rule_query.h \
 	terule_query.h \
+	ftrule_query.h \
 	type_query.h \
 	user_query.h \
 	util.h

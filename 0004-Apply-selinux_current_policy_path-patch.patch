@@ -1,18 +1,24 @@
-diff -up setools-3.3.7/libqpol/src/util.c.current setools-3.3.7/libqpol/src/util.c
---- setools-3.3.7/libqpol/src/util.c.current	2010-04-23 12:22:08.000000000 -0400
-+++ setools-3.3.7/libqpol/src/util.c	2012-02-16 12:01:33.030434514 -0500
-@@ -84,75 +84,12 @@ static int get_binpol_version(const char
+From 85a12d481d664120865b46cd1c4c325307179471 Mon Sep 17 00:00:00 2001
+From: Miroslav Grepl <mgrepl@redhat.com>
+Date: Fri, 11 Apr 2014 10:53:54 +0200
+Subject: [PATCH 04/11] Apply selinux_current_policy_path patch
+
+---
+ libqpol/src/util.c | 73 ++++--------------------------------------------------
+ 1 file changed, 5 insertions(+), 68 deletions(-)
+
+diff --git a/libqpol/src/util.c b/libqpol/src/util.c
+index 7c49876..8f74b2b 100644
+--- a/libqpol/src/util.c
++++ b/libqpol/src/util.c
+@@ -84,75 +84,12 @@ static int get_binpol_version(const char *policy_fname)
  
  static int search_policy_binary_file(char **path)
  {
 -	const char *binary_path;
 -	if ((binary_path = selinux_binary_policy_path()) == NULL) {
 -		return -1;
-+	const char *binary_path = selinux_current_policy_path();
-+	if (binary_path) {
-+		*path = strdup(binary_path);
-+		if (*path) return 0;
- 	}
+-	}
 -
 -	int expected_version = -1, latest_version = -1;
 -#ifdef LIBSELINUX
@@ -76,9 +82,16 @@ diff -up setools-3.3.7/libqpol/src/util.c.current setools-3.3.7/libqpol/src/util
 -	globfree(&glob_buf);
 -	if (retval == -1) {
 -		errno = error;
--	}
++	const char *binary_path = selinux_current_policy_path();
++	if (binary_path) {
++		*path = strdup(binary_path);
++		if (*path) return 0;
+ 	}
 -	return retval;
 +	return -1;
  }
  
  int qpol_default_policy_find(char **path)
+-- 
+1.8.5.3
+

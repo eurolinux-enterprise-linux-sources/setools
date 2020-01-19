@@ -1,0 +1,35 @@
+From b00d11c941b689fbf3441e80b318c6a05c6657e4 Mon Sep 17 00:00:00 2001
+From: Vit Mojzis <vmojzis@redhat.com>
+Date: Thu, 19 Oct 2017 15:17:21 +0200
+Subject: [PATCH] libqpol: Do not fail on neverallow rule query
+
+Drawing upon the conclusion from:
+
+77bd0f2103e8f02f02ba75dd5fd5ceb263d4f878
+No need to take into account the policy capabilities in sesearch code,
+the lower levels in the library handle it correctly. (fixes Fedora
+bug #526460)
+---
+ libqpol/src/avrule_query.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/libqpol/src/avrule_query.c b/libqpol/src/avrule_query.c
+index 749565b..c2dd010 100644
+--- a/libqpol/src/avrule_query.c
++++ b/libqpol/src/avrule_query.c
+@@ -55,12 +55,6 @@ int qpol_policy_get_avrule_iter(const qpol_policy_t * policy, uint32_t rule_type
+ 	}
+ #endif
+ 
+-	if ((rule_type_mask & QPOL_RULE_NEVERALLOW) && !qpol_policy_has_capability(policy, QPOL_CAP_NEVERALLOW)) {
+-		ERR(policy, "%s", "Cannot get avrules: Neverallow rules requested but not available");
+-		errno = ENOTSUP;
+-		return STATUS_ERR;
+-	}
+-
+ 	db = &policy->p->p;
+ 
+ 	state = calloc(1, sizeof(avtab_state_t));
+-- 
+2.9.4
+

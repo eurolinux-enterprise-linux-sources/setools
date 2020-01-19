@@ -21,6 +21,7 @@ libqpol_a_SOURCES = \
 	cond_query.c \
 	constraint_query.c \
 	context_query.c \
+	default_object_query.c \
 	expand.c \
 	expand.h \
 	fs_use_query.c \
@@ -35,6 +36,7 @@ libqpol_a_SOURCES = \
 	netifcon_query.c \
 	nodecon_query.c \
 	permissive_query.c \
+	bounds_query.c \
 	polcap_query.c \
 	policy.c \
 	policy_define.c policy_define.h \
@@ -48,6 +50,7 @@ libqpol_a_SOURCES = \
 	syn_rule_internal.h \
 	syn_rule_query.c \
 	terule_query.c \
+	ftrule_query.c \
 	type_query.c \
 	user_query.c \
 	util.c \

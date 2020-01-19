@@ -1,0 +1,24 @@
+From ba8e76cd514e8ce92a48931963e97fe79589a71a Mon Sep 17 00:00:00 2001
+From: Miroslav Grepl <mgrepl@redhat.com>
+Date: Fri, 11 Apr 2014 11:12:37 +0200
+Subject: [PATCH 05/11] Apply seaudit patch for progress.c
+
+---
+ libqpol/swig/java/Makefile.am | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/libqpol/swig/java/Makefile.am b/libqpol/swig/java/Makefile.am
+index a25eacb..533b55a 100644
+--- a/libqpol/swig/java/Makefile.am
++++ b/libqpol/swig/java/Makefile.am
+@@ -48,7 +48,6 @@ BUILT_SOURCES = qpol_wrap.c \
+ 	qpol_type_t.java \
+ 	qpol_user_t.java \
+ 	qpol_validatetrans_t.java \
+-	SWIGTYPE_p_int.java \
+ 	SWIGTYPE_p_unsigned_int.java \
+ 	SWIGTYPE_p_void.java
+ 
+-- 
+1.8.5.3
+
